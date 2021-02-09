@@ -11,43 +11,41 @@ case class HWDs(hwm_key: String, hwm_value: Long)
 
 object
 IncrementalLoads extends App with Logging {
-  // load and set application conf
-
   try {
-    val apc = ConfigFactory.load("delta-load-app.conf")
-    val waterMarkCol = apc.getString("jdbc.highWaterMarkColumnName").toLowerCase
-    val watermarkDir =apc.getString("jdbc.highWaterMarkDir")
-    var jdbcOps = readWriteOptions(apc.getConfig("jdbc.options"))
+    // load and set application conf
+    val apc = ConfigFactory.load
+    val waterMarkCol = apc.getString("jdbc.srcTbl.highWaterMarkColumnName").toLowerCase
+    val watermarkDir = apc.getString("jdbc.srcTbl.highWaterMarkDir")
+    var jdbcOps = readWriteOptions(apc.getConfig("jdbc.srcTbl.options"))
 
-    val spark = SparkSession
-      .builder()
-      .master("local[*]")
-      .getOrCreate()
-    import spark.implicits._
+  val spark = SparkSession
+       .builder()
+       .master("local[*]")
+       .getOrCreate()
+     import spark.implicits._
 
-    val fs = FileSystem.get(spark.sparkContext.hadoopConfiguration)
-    val fileExists = fs.exists(new Path(watermarkDir))
-    val wmks = waterMarkCol.split("\\.")
-    var mkv = Row("0")
-    if (fileExists) {
-      val chkDf = spark.read.parquet(watermarkDir).as[HWDs]
-      chkDf.show(false)
-      mkv = chkDf.filter($"hwm_key" === waterMarkCol)
-        .select("hwm_value")
-        .sort(col("hwm_value").desc).head
-    } else {
-      jdbcOps += ("dbtable" -> s"${jdbcOps.get("dbtable").mkString.format(deserialize2SrcHWV(mkv, waterMarkCol))}")
-      println(jdbcOps)
-      val srcDf = spark.read.format("jdbc").options(jdbcOps).load()
-      // write into target system
-      srcDf.show(false)
+     val fs = FileSystem.get(spark.sparkContext.hadoopConfiguration)
+     val fileExists = fs.exists(new Path(watermarkDir))
+     val wmks = waterMarkCol.split("\\.").toList
 
-      mkv = srcDf.select(wmks.take(1).mkString)
-        .sort(col(wmks.take(1).mkString).desc).head
+     var mkv = Row("0")
+     if (fileExists) {
+       val chkDf = spark.read.parquet(watermarkDir).as[HWDs]
+       chkDf.show(false)
+       mkv = chkDf.filter($"hwm_key" === waterMarkCol)
+         .select("hwm_value")
+         .sort(col("hwm_value").desc).head
+     } else {
+       jdbcOps += ("dbtable" -> s"${jdbcOps.get("dbtable").mkString.format(deserialize2SrcHWV(mkv, waterMarkCol))}")
+       val srcDf = spark.read.format("jdbc").options(jdbcOps).load()
+       // write into target system
+       srcDf.show(false)
+       mkv = srcDf.select(wmks.get(2))
+         .sort(col(wmks.get(2)).desc).head
+       val hwDs = Seq(HWDs(waterMarkCol, serializable2HWV(mkv, waterMarkCol))).toDF()
+       hwDs.write.mode(SaveMode.Append).parquet(watermarkDir)
+     }
 
-      val hwDs = Seq(HWDs(waterMarkCol, serializable2HWV(mkv, waterMarkCol))).toDF()
-      hwDs.write.mode(SaveMode.Append).parquet(watermarkDir)
-    }
   }
 
 
