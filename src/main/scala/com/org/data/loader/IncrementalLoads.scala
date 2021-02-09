@@ -38,8 +38,7 @@ IncrementalLoads extends App with Logging {
      } else {
        jdbcOps += ("dbtable" -> s"${jdbcOps.get("dbtable").mkString.format(deserialize2SrcHWV(mkv, waterMarkCol))}")
        val srcDf = spark.read.format("jdbc").options(jdbcOps).load()
-       // write into target system
-       srcDf.show(false)
+       srcDf.show(false) // <-- write into target system
        mkv = srcDf.select(wmks.get(2))
          .sort(col(wmks.get(2)).desc).head
        val hwDs = Seq(HWDs(waterMarkCol, serializable2HWV(mkv, waterMarkCol))).toDF()
