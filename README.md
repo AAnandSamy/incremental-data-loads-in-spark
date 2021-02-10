@@ -12,7 +12,7 @@ This change detection relies on a "high water mark" column capturing the version
     - All updates to an item also change the value of the column.
     - The value of this column increases with each insert or update. 
     
-Queries with the following WHERE and ORDER BY clauses can be executed efficiently
+Queries with the following WHERE clauses can be executed efficiently
 
 ### Configs
 ```scala
@@ -31,30 +31,30 @@ highWaterMarkDir = "/data/check-pointing"
 }
 }
 ```    
-### Data loadss
-- First time, no water marks so start from pull everything 
-  ```
-  +----------+-----------------------+
-  |TXN_NUMBER|LOADDT                 |
-  +----------+-----------------------+
-  |100101    |2021-02-10 07:14:51.076|
-  |100102    |2021-02-10 07:15:16.893|
-  |100103    |2021-02-10 07:15:22.232|
-  |100104    |2021-02-10 07:15:27.276|
-  |100105    |2021-02-10 07:15:31.809|
-  +----------+-----------------------+
-  ```
-- Second time
-- Get the high water mark 
-  ```
-  +------------------------------+-----------------+
-  |hwm_key                       |hwm_value        |
-  +------------------------------+-----------------+
-  |db.tablea.loaddt.timestamp    |20210210071531809|
-  +------------------------------+-----------------+
-  ```
-- Fetch latest records based on high watermark
-
+### Data loads
+- First time, no water marks, so it will start from beginning to upto now and write into target system, Record the High water value
+  - Dataset
+    ```
+    +----------+-----------------------+
+    |TXN_NUMBER|LOADDT                 |
+    +----------+-----------------------+
+    |100101    |2021-02-10 07:14:51.076|
+    |100102    |2021-02-10 07:15:16.893|
+    |100103    |2021-02-10 07:15:22.232|
+    |100104    |2021-02-10 07:15:27.276|
+    |100105    |2021-02-10 07:15:31.809|
+    +----------+-----------------------+
+    ```
+- Second time, Get the high water mark and fetch the latest records based on high watermark value
+  - High water mark dataset
+    ```
+    +------------------------------+-----------------+
+    |hwm_key                       |hwm_value        |
+    +------------------------------+-----------------+
+    |db.tablea.loaddt.timestamp    |20210210071531809|
+    +------------------------------+-----------------+
+    ```
+  - Dataset
   ```
   +----------+-----------------------+
   |TXN_NUMBER|LOADDT                 |
