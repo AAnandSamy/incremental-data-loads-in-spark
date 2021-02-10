@@ -18,33 +18,30 @@ IncrementalLoads extends App with Logging {
     val watermarkDir = apc.getString("jdbc.srcTbl.highWaterMarkDir")
     var jdbcOps = readWriteOptions(apc.getConfig("jdbc.srcTbl.options"))
 
-  val spark = SparkSession
-       .builder()
-       .master("local[*]")
-       .getOrCreate()
-     import spark.implicits._
+    val spark = SparkSession
+      .builder()
+      .master("local[*]")
+      .getOrCreate()
+    import spark.implicits._
 
-     val fs = FileSystem.get(spark.sparkContext.hadoopConfiguration)
-     val fileExists = fs.exists(new Path(watermarkDir))
-     val wmks = waterMarkCol.split("\\.").toList
+    val fs = FileSystem.get(spark.sparkContext.hadoopConfiguration)
+    val fileExists = fs.exists(new Path(watermarkDir))
+    val wmks = waterMarkCol.split("\\.").toList
 
-     var mkv = Row("0")
-     if (fileExists) {
-       val chkDf = spark.read.parquet(watermarkDir).as[HWDs]
-       chkDf.show(false)
-       mkv = chkDf.filter($"hwm_key" === waterMarkCol)
-         .select("hwm_value")
-         .sort(col("hwm_value").desc).head
-     } else {
-       jdbcOps += ("dbtable" -> s"${jdbcOps.get("dbtable").mkString.format(deserialize2SrcHWV(mkv, waterMarkCol))}")
-       val srcDf = spark.read.format("jdbc").options(jdbcOps).load()
-       srcDf.show(false) // <-- write into target system
-       mkv = srcDf.select(wmks.get(2))
-         .sort(col(wmks.get(2)).desc).head
-       val hwDs = Seq(HWDs(waterMarkCol, serializable2HWV(mkv, waterMarkCol))).toDF()
-       hwDs.write.mode(SaveMode.Append).parquet(watermarkDir)
-     }
-
+    var mkv = Row("0")
+    if (fileExists) {
+      val chkDf = spark.read.parquet(watermarkDir).as[HWDs]
+      mkv = chkDf.filter($"hwm_key" === waterMarkCol)
+        .select("hwm_value")
+        .sort(col("hwm_value").desc).head
+    }
+    jdbcOps += ("dbtable" -> s"${jdbcOps.get("dbtable").mkString.format(deserialize2SrcHWV(mkv, waterMarkCol))}")
+    val srcDf = spark.read.format("jdbc").options(jdbcOps).load()
+    srcDf.show(false) // <-- write into target system
+    mkv = srcDf.select(wmks.get(2))
+      .sort(col(wmks.get(2)).desc).head
+    val hwDs = Seq(HWDs(waterMarkCol, serializable2HWV(mkv, waterMarkCol))).toDF()
+    hwDs.write.mode(SaveMode.Append).parquet(watermarkDir)
   }
 
 
@@ -65,7 +62,7 @@ IncrementalLoads extends App with Logging {
   def serializable2HWV(rv: Row, fwk: String): Long = {
     val dty = fwk.split("\\.").last
     if (dty.equalsIgnoreCase("Timestamp")) {
-      rv.mkString.replaceAll("[^0-9]", "").toLong
+      rv.mkString.slice(0, 23).replaceAll("[^0-9]", "").toLong
     } else {
       rv.getLong(0)
     }
@@ -81,7 +78,7 @@ IncrementalLoads extends App with Logging {
   def deserialize2SrcHWV(rv: Row, fwk: String): String = {
     val dty = fwk.split("\\.").last
     val wv = rv.mkString
-    if (dty.equalsIgnoreCase("Timestamp")) {
+    if (dty.equalsIgnoreCase("timestamp")) {
       if (wv.length == 16 || wv.length == 17)
         s"${wv.slice(0, 4)}-${wv.slice(4, 6)}-${wv.slice(6, 8)} ${wv.slice(8, 10)}:${wv.slice(10, 12)}:${wv.slice(12, 14)}.${wv.slice(14, 17)}"
       else if (wv.length == 14)
