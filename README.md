@@ -33,7 +33,7 @@ highWaterMarkDir = "/data/check-pointing"
 ```    
 ### Data loadss
 - First time, no water so start from pull everything 
-```CSV
+```
 +----------+--------------------------+
 |TXN_NUMBER|LOADDT                    |
 +----------+--------------------------+
@@ -46,7 +46,7 @@ highWaterMarkDir = "/data/check-pointing"
 ```
 - Second time
 - Get the high water mark 
-```CSV
+```
 +------------------------------+-----------------+
 |hwm_key                       |hwm_value        |
 +------------------------------+-----------------+
@@ -55,7 +55,7 @@ highWaterMarkDir = "/data/check-pointing"
 ```
 - Fetch latest records based on high water mark
 
-```CSV
+```
 +----------+--------------------------+
 |TXN_NUMBER|LOADDT                    |
 +----------+--------------------------+
@@ -67,7 +67,7 @@ highWaterMarkDir = "/data/check-pointing"
 ```
 - Check new water mark have been added 
 
-```CSV
+```
 +------------------------------+-----------------+
 |hwm_key                       |hwm_value        |
 +------------------------------+-----------------+
