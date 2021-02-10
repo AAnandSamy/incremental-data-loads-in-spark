@@ -1,4 +1,4 @@
-# incremental-data-loads-in-spark
+# Incremental-data-loads-in-spark
 Incremental loads/imports means we already have imported the data earlier and not we want to import the delta generated after the last cut. Incremental import based on “last modified” mode for new data inserted.
 we want to import all the data which have changed in the table after the timestamp/Date/VersionNumber of our last import. This will include all new data inserted and old data updated.
 
@@ -32,46 +32,45 @@ highWaterMarkDir = "/data/check-pointing"
 }
 ```    
 ### Data loadss
-- First time, no water so start from pull everything 
-```
-+----------+--------------------------+
-|TXN_NUMBER|LOADDT                    |
-+----------+--------------------------+
-|100101    |2021-02-10 07:14:51.076714|
-|100102    |2021-02-10 07:15:16.893723|
-|100103    |2021-02-10 07:15:22.23256 |
-|100104    |2021-02-10 07:15:27.276443|
-|100105    |2021-02-10 07:15:31.809291|
-+----------+--------------------------+
-```
+- First time, no water marks so start from pull everything 
+  ```
+  +----------+-----------------------+
+  |TXN_NUMBER|LOADDT                 |
+  +----------+-----------------------+
+  |100101    |2021-02-10 07:14:51.076|
+  |100102    |2021-02-10 07:15:16.893|
+  |100103    |2021-02-10 07:15:22.232|
+  |100104    |2021-02-10 07:15:27.276|
+  |100105    |2021-02-10 07:15:31.809|
+  +----------+-----------------------+
+  ```
 - Second time
 - Get the high water mark 
-```
-+------------------------------+-----------------+
-|hwm_key                       |hwm_value        |
-+------------------------------+-----------------+
-|db.tablea.loaddt.timestamp    |20210210071531809|
-+------------------------------+-----------------+
-```
-- Fetch latest records based on high water mark
+  ```
+  +------------------------------+-----------------+
+  |hwm_key                       |hwm_value        |
+  +------------------------------+-----------------+
+  |db.tablea.loaddt.timestamp    |20210210071531809|
+  +------------------------------+-----------------+
+  ```
+- Fetch latest records based on high watermark
 
-```
-+----------+--------------------------+
-|TXN_NUMBER|LOADDT                    |
-+----------+--------------------------+
-|100106    |2021-02-10 07:28:22.51126 |
-|100107    |2021-02-10 07:28:27.778189|
-|100108    |2021-02-10 09:43:43.508931|
-+----------+--------------------------+
-
-```
+  ```
+  +----------+-----------------------+
+  |TXN_NUMBER|LOADDT                 |
+  +----------+-----------------------+
+  |100106    |2021-02-10 07:28:22.511|
+  |100107    |2021-02-10 07:28:27.778|
+  |100108    |2021-02-10 09:43:43.508|
+  +----------+-----------------------+
+  ```
 - Check new water mark have been added 
-
-```
-+------------------------------+-----------------+
-|hwm_key                       |hwm_value        |
-+------------------------------+-----------------+
-|biuser.tablea.loaddt.timestamp|20210210071531809|
-|biuser.tablea.loaddt.timestamp|20210210094343508|
-+------------------------------+-----------------+
-```
+  
+  ```
+  +------------------------------+-----------------+
+  |hwm_key                       |hwm_value        |
+  +------------------------------+-----------------+
+  |biuser.tablea.loaddt.timestamp|20210210071531809|
+  |biuser.tablea.loaddt.timestamp|20210210094343508|
+  +------------------------------+-----------------+
+  ```
