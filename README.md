@@ -74,3 +74,26 @@ highWaterMarkDir = "/data/check-pointing"
   |biuser.tablea.loaddt.timestamp|20210210094343508|
   +------------------------------+-----------------+
   ```
+### Optimize performance when reading data
+In order to load data in parallel, the Spark JDBC data source must be configured with appropriate partitioning information so that it can issue multiple concurrent queries to the external database
+- Specify partition column, its should be a numeric.
+- Data boundaries like lowerBound and upperBound
+- provide 'numPartitions' to process in parallel, fairly evenly-distributed values(boundaries)
+- set 'fetchSize', something like 5000 rows per JDBC roundtrip   
+  ```scala
+  fetchsize = 5000
+  partitionColumn=DAYHH
+  lowerBound=100
+  upperBound=3123
+  numPartitions=40
+  ```
+
+### Optimize performance when writing data
+
+In order to write data in parallel, the Spark JDBC data source must be configured with appropriate partitioning information so that it can issue multiple writes into external database.
+- set 'batchsize', something like 5000 rows per JDBC roundtrip
+- provide 'numPartitions' to process in parallel or Partition the dataframes  
+  ```scala
+  batchsize = 5000 
+  numPartitions=40
+  ```
